@@ -1,0 +1,141 @@
+.{
+    .format = 1,
+
+    .tool = "venom-desk",
+
+    .summary = "The TUI workspace on venomx: a presentation client (attach), tiling policies, workspaces and a command palette over every product's verbs",
+
+    .verbs = .{
+        .{
+            .name = "tiling.list",
+            .summary = "The default tiling policy (config tiling.policy) and every per-session override; venom-desk attach uses the override of its session, else the default",
+            .result = .{
+                .kind = .object,
+                .fields = .{
+                    .{
+                        .name = "default",
+                        .summary = "Policy for sessions without an override",
+                        .type = .{ .kind = .string, .choices = .{ "manual", "bsp", "master-stack", "scrolling" } },
+                        .required = true,
+                    },
+                    .{
+                        .name = "sessions",
+                        .summary = "Per-session overrides, by session ID",
+                        .type = .{
+                            .kind = .array,
+                            .items = .{
+                                .kind = .object,
+                                .fields = .{
+                                    .{ .name = "session", .summary = "venomx session ID", .type = .{ .kind = .string }, .required = true },
+                                    .{ .name = "policy", .summary = "Tiling policy", .type = .{ .kind = .string, .choices = .{ "manual", "bsp", "master-stack", "scrolling" } }, .required = true },
+                                },
+                            },
+                        },
+                        .required = true,
+                    },
+                },
+            },
+            .grant = .read,
+            .examples = .{
+                .{ .params = .{}, .result = .{ .default = "bsp", .sessions = .{.{ .session = "s0", .policy = "master-stack" }} } },
+            },
+        },
+
+        .{
+            .name = "tiling.get",
+            .summary = "The tiling policy one venomx session uses: its override, else the default",
+            .params = .{
+                .{ .name = "session", .summary = "venomx session ID", .type = .{ .kind = .string }, .required = true },
+            },
+            .result = .{
+                .kind = .object,
+                .fields = .{
+                    .{ .name = "session", .summary = "venomx session ID", .type = .{ .kind = .string }, .required = true },
+                    .{ .name = "policy", .summary = "Tiling policy in effect", .type = .{ .kind = .string, .choices = .{ "manual", "bsp", "master-stack", "scrolling" } }, .required = true },
+                    .{ .name = "override", .summary = "True when the policy is this session's override", .type = .{ .kind = .boolean }, .required = true },
+                },
+            },
+            .grant = .read,
+            .examples = .{
+                .{ .params = .{ .session = "s0" }, .result = .{ .session = "s0", .policy = "bsp", .override = false } },
+            },
+        },
+
+        .{
+            .name = "tiling.set",
+            .summary = "Override the tiling policy of one venomx session (kept for this daemon's lifetime; attach clients apply it to their next split)",
+            .params = .{
+                .{ .name = "session", .summary = "venomx session ID (not checked against venomx)", .type = .{ .kind = .string }, .required = true },
+                .{ .name = "policy", .summary = "Tiling policy", .type = .{ .kind = .string, .choices = .{ "manual", "bsp", "master-stack", "scrolling" } }, .required = true },
+            },
+            .result = .{
+                .kind = .object,
+                .fields = .{
+                    .{ .name = "session", .summary = "venomx session ID", .type = .{ .kind = .string }, .required = true },
+                    .{ .name = "policy", .summary = "Tiling policy now in effect", .type = .{ .kind = .string }, .required = true },
+                },
+            },
+            .errors = .{
+                .{ .code = "conflict.too_many", .summary = "The daemon already keeps the maximum number of overrides (256)" },
+            },
+            .grant = .write,
+            .examples = .{
+                .{ .params = .{ .session = "s0", .policy = "master-stack" }, .result = .{ .session = "s0", .policy = "master-stack" } },
+            },
+        },
+
+        .{
+            .name = "tiling.clear",
+            .summary = "Drop the tiling override of one session, so it uses the default policy again",
+            .params = .{
+                .{ .name = "session", .summary = "venomx session ID", .type = .{ .kind = .string }, .required = true },
+            },
+            .result = .{
+                .kind = .object,
+                .fields = .{
+                    .{ .name = "session", .summary = "venomx session ID", .type = .{ .kind = .string }, .required = true },
+                    .{ .name = "cleared", .summary = "False when the session had no override", .type = .{ .kind = .boolean }, .required = true },
+                },
+            },
+            .grant = .write,
+            .examples = .{
+                .{ .params = .{ .session = "s0" }, .result = .{ .session = "s0", .cleared = true } },
+            },
+        },
+
+        .{
+            .name = "palette.list",
+            .summary = "The command palette: venom-desk's own key actions plus the verbs of every product in config palette.products that answers `<tool> mcp` (read from its tools/list); products that do not answer are left out",
+            .params = .{
+                .{ .name = "query", .summary = "Fuzzy filter (characters in order); empty lists everything", .type = .{ .kind = .string }, .default = "" },
+            },
+            .result = .{
+                .kind = .object,
+                .fields = .{
+                    .{ .name = "reachable", .summary = "Products whose schema was read", .type = .{ .kind = .array, .items = .{ .kind = .string } }, .required = true },
+                    .{
+                        .name = "entries",
+                        .summary = "Palette entries, best match first",
+                        .type = .{
+                            .kind = .array,
+                            .items = .{
+                                .kind = .object,
+                                .fields = .{
+                                    .{ .name = "tool", .summary = "Product, or venom-desk for a key action", .type = .{ .kind = .string }, .required = true },
+                                    .{ .name = "verb", .summary = "Wire name, or the key action's name", .type = .{ .kind = .string }, .required = true },
+                                    .{ .name = "summary", .summary = "One-line description", .type = .{ .kind = .string }, .required = true },
+                                    .{ .name = "required", .summary = "Required parameters the palette prompts for", .type = .{ .kind = .array, .items = .{ .kind = .string } }, .required = true },
+                                },
+                            },
+                        },
+                        .required = true,
+                    },
+                },
+            },
+            .grant = .read,
+            .examples = .{
+                .{ .params = .{ .query = "split" }, .result = .{ .reachable = .{"venomx"}, .entries = .{.{ .tool = "venomx", .verb = "pane.split", .summary = "Split a pane", .required = .{ "pane", "axis" } }} } },
+            },
+        },
+    },
+}

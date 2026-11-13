@@ -1,0 +1,20 @@
+{
+  "tool": "venom-desk",
+  "read": {"args": ["tiling", "get", "--session=s9"], "result": {"session": "s9", "policy": "bsp", "override": false}, "mcp": {"name": "tiling_dget", "arguments": {"session": "s9"}}},
+  "usage_error": {"args": ["tiling", "set", "--session=s0", "--policy=spiral"], "code": "invalid_params.enum"},
+  "mutation": {
+    "args": ["tiling", "set", "--session=s0", "--policy=master-stack"],
+    "result": {"session": "s0", "policy": "master-stack"},
+    "mcp": {"name": "tiling_dset", "arguments": {"session": "s0", "policy": "master-stack"}},
+    "observe": {"args": ["tiling", "list"], "before": {"default": "bsp", "sessions": []}, "after": {"default": "bsp", "sessions": [{"session": "s0", "policy": "master-stack"}]}}
+  },
+  "stream": {"kind": "events"},
+  "config": {
+    "key": "grants.unknown", "default": ".{.{.right=.read,.scope=\"*\"}}", "value": ".{.{.right=.read,.scope=\"config:root\"}}",
+    "observe": {
+      "args": ["whoami"],
+      "before": {"principal": "unknown", "kind": "unknown", "parent": null, "grants": [{"right": "read", "scope": "*"}], "namespace": "user", "expires": null},
+      "after": {"principal": "unknown", "kind": "unknown", "parent": null, "grants": [{"right": "read", "scope": "config:root"}], "namespace": "user", "expires": null}
+    }
+  }
+}
